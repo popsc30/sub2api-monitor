@@ -1,0 +1,17 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build with warnings as errors
+        run: xcrun swift build -c release -Xswiftc -warnings-as-errors
+      - name: Run core checks
+        run: xcrun swift run Sub2APIMonitorCoreChecks
+      - name: Package application
+        run: ./scripts/package.sh
