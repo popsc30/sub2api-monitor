@@ -171,26 +171,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func updateStatusTitle() {
-        guard let selected = AppConfiguration.selectedAccountID,
-              let usage = snapshot.usage[String(selected)]
-        else {
-            statusItem.button?.title = isRefreshing ? "Loading..." : "Sub2API"
-            return
-        }
-        let five = UsageFormatter.percentText(usage.fiveHour?.utilization)
-        let seven = UsageFormatter.percentText(usage.sevenDay?.utilization)
+        let usage = AppConfiguration.selectedAccountID.flatMap { snapshot.usage[String($0)] }
+        let five = UsageFormatter.percentText(usage?.fiveHour?.utilization)
+        let seven = UsageFormatter.percentText(usage?.sevenDay?.utilization)
         let maximum = [
-            UsageFormatter.percent(usage.fiveHour?.utilization),
-            UsageFormatter.percent(usage.sevenDay?.utilization),
+            UsageFormatter.percent(usage?.fiveHour?.utilization),
+            UsageFormatter.percent(usage?.sevenDay?.utilization),
         ].compactMap { $0 }.max()
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .medium),
-            .foregroundColor: color(for: maximum),
-        ]
-        statusItem.button?.attributedTitle = NSAttributedString(
-            string: "\(five) · \(seven)",
-            attributes: attributes
-        )
+        statusItem.button?.title = ""
+        statusItem.button?.image = twoLineImage(top: five, bottom: seven, color: color(for: maximum))
+        statusItem.button?.setAccessibilityLabel("5h \(five), 7d \(seven)")
+    }
+
+    /// Renders the 5h usage above the 7d usage so the status item stays narrow.
+    /// Drawing happens at display time so system colors follow the menu bar appearance.
+    private func twoLineImage(top: String, bottom: String, color: NSColor) -> NSImage {
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .medium)
+        let lineHeight: CGFloat = 11
+        let width = ceil([top, bottom].map {
+            NSAttributedString(string: $0, attributes: [.font: font]).size().width
+        }.max() ?? 0)
+        return NSImage(size: NSSize(width: width, height: lineHeight * 2), flipped: true) { _ in
+            for (index, text) in [top, bottom].enumerated() {
+                let line = NSAttributedString(string: text, attributes: [
+                    .font: font,
+                    .foregroundColor: color,
+                ])
+                line.draw(at: NSPoint(x: width - line.size().width, y: CGFloat(index) * lineHeight))
+            }
+            return true
+        }
     }
 
     private func disabledItem(
@@ -243,7 +253,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func showSettings() {
-        let hasStoredKey = ((try? KeychainStore.read()) ?? nil) != nil
+        let hasStoredKey = ((try? AppConfiguration.storedKey()) ?? nil) != nil
         settingsWindow = SettingsWindowController(
             server: AppConfiguration.serverURLString,
             hasStoredKey: hasStoredKey

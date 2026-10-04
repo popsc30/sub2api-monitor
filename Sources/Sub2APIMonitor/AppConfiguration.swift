@@ -1,9 +1,14 @@
 import Foundation
 import Sub2APIMonitorCore
 
+@MainActor
 enum AppConfiguration {
     private static let serverKey = "serverBaseURL"
     private static let selectedAccountKey = "selectedAccountID"
+
+    // Each SecItemCopyMatching call retains ~16 KB inside Security.framework,
+    // so the key is read from the Keychain once and cached for the app's lifetime.
+    private static var cachedKey: String??
 
     static var serverURLString: String? {
         get { UserDefaults.standard.string(forKey: serverKey) }
@@ -20,7 +25,7 @@ enum AppConfiguration {
 
     static func current() throws -> (url: URL, key: String)? {
         guard let serverURLString,
-              let key = try KeychainStore.read(),
+              let key = try storedKey(),
               !key.isEmpty
         else {
             return nil
@@ -39,7 +44,8 @@ enum AppConfiguration {
                 )
             }
             try KeychainStore.save(key)
-        } else if try KeychainStore.read() == nil {
+            cachedKey = key
+        } else if try storedKey() == nil {
             throw NSError(
                 domain: "Sub2APIMonitor",
                 code: 2,
@@ -47,6 +53,13 @@ enum AppConfiguration {
             )
         }
         serverURLString = normalized.absoluteString
+    }
+
+    static func storedKey() throws -> String? {
+        if let cachedKey { return cachedKey }
+        let key = try KeychainStore.read()
+        cachedKey = key
+        return key
     }
 
     static func migrateLegacyConfigurationIfNeeded() {
@@ -62,7 +75,7 @@ enum AppConfiguration {
             }
         }
 
-        guard (try? KeychainStore.read()) == nil,
+        guard (try? storedKey()) == nil,
               let legacy = try? KeychainStore.read(
                   service: "co.agenticai.sub2api-menubar",
                   account: NSUserName()
@@ -71,6 +84,8 @@ enum AppConfiguration {
         else {
             return
         }
-        try? KeychainStore.save(legacy)
+        if (try? KeychainStore.save(legacy)) != nil {
+            cachedKey = legacy
+        }
     }
 }

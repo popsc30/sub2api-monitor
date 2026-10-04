@@ -13,7 +13,7 @@ or any third-party runtime.
 
 ## Features
 
-- Displays `5h · 7d` utilization directly in the menu bar
+- Displays 5h utilization above 7d utilization in a compact two-line menu bar item
 - Discovers and lists every Sub2API account automatically
 - Switches the account shown in the menu bar with one click
 - Shows requests, tokens, cost, and reset time when available
@@ -28,12 +28,12 @@ or any third-party runtime.
 - A reachable Sub2API deployment
 - The Admin API Key configured for that deployment
 
-The downloadable `v1.0.1` app is built for Apple Silicon (`arm64`). Intel Mac
+The downloadable `v1.0.2` app is built for Apple Silicon (`arm64`). Intel Mac
 users can build the app from source on their machine.
 
 ## Install a release
 
-1. Download `Sub2API-Monitor-v1.0.1-macos-arm64.zip` from
+1. Download `Sub2API-Monitor-v1.0.2-macos-arm64.zip` from
    [Releases](https://github.com/popsc30/sub2api-monitor/releases).
 2. Unzip it and move **Sub2API Monitor.app** to `/Applications`.
 3. On first launch, Control-click the app in Finder and choose **Open**.
@@ -88,7 +88,7 @@ xcrun swift build -c release -Xswiftc -warnings-as-errors
 ## Create a release archive
 
 ```sh
-./scripts/release.sh 1.0.1
+./scripts/release.sh 1.0.2
 ```
 
 The release archive and checksum are written to `dist/`. The script builds the
